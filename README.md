@@ -15,8 +15,18 @@ no build step, no server-side code: it is a folder of static files.
   screen you tap once to place it and tap again to confirm. An optional reference c¹ plays first.
 
 **Settings** (the sliders button) cover the instrument (piano, or alto sax in E♭), the clef (treble
-for now) and exactly which notes to practise. There are presets for the staff, lines, spaces,
-ledger lines below and above, and accidentals. They are saved in the browser's localStorage.
+for now) and exactly which notes to practise. For a quick selection you pick a key and a region:
+- **Keys:** C dur to H dur and Des dur, i.e. up to five ♯ or ♭, or chromatic.
+- **Regions:** on the staff, lines, spaces, below, above, or the whole range.
+
+The app then selects that key's notes in that region, spelled as the key spells them. You can
+still toggle single notes afterwards. Everything is saved in the browser's localStorage.
+
+**Key signature.** By default the staff shows the chosen key's signature, so notes in the key
+appear without their own accidentals. Reading then means reading the signature: a bare note on the
+F line in G dur is Fis. Notes outside the key get their accidental, or ♮.
+- **Poslech:** a click means the note as written. The ♭/♮/♯ buttons override that for one answer.
+- **Turning it off:** a switch in the settings goes back to printing every accidental at the note.
 
 ## Running locally
 

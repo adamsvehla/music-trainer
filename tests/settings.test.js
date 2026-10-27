@@ -39,6 +39,15 @@ test('corrupt or unavailable storage still gives working defaults', () => {
   assert.equal(loadSettings(memory({ 'music-trainer:v1': JSON.stringify({ mode: 'bogus', instrument: 'tuba' }) })).instrument, 'piano');
 });
 
+test('the last quick selection is remembered, an unknown one falls back to C dur on the staff', () => {
+  const kept = loadSettings(memory({ 'music-trainer:v1': JSON.stringify({ key: 'Es', region: 'lines' }) }));
+  assert.equal(kept.key, 'Es');
+  assert.equal(kept.region, 'lines');
+  const reset = loadSettings(memory({ 'music-trainer:v1': JSON.stringify({ key: 'Fis', region: 'everywhere' }) }));
+  assert.equal(reset.key, 'C');
+  assert.equal(reset.region, 'staff');
+});
+
 test('an empty pool is kept as the user chose it', () => {
   const store = memory();
   const s = loadSettings(store);

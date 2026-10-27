@@ -1,6 +1,8 @@
 // Mode (a), Čtení: a note appears on the staff and the player names it.
 //
-// The answer has to match the written spelling (Fis is not Ges) but not the octave. With
+// The answer has to match the written spelling (Fis is not Ges) but not the octave, and
+// under a key signature that means reading the signature: a bare note on the F line in
+// G dur is Fis. With
 // no accidentals in the pool a single key press answers; with accidentals the player
 // types the Czech name ("fis", "es", "b"), which submits by itself once it cannot grow
 // into a longer name, or with Enter.
@@ -65,7 +67,7 @@ export function start(ctx) {
   );
 
   function draw(state = 'normal') {
-    render(svg, { clef, range, notes: [{ note: target, state }] });
+    render(svg, { clef, range, notes: [{ note: target, state }], signature: ctx.signature });
   }
 
   function prompt() {

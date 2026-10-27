@@ -7,7 +7,7 @@
 // H and B♭ is B.
 
 export const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-const SEMITONES = [0, 2, 4, 5, 7, 9, 11];
+export const SEMITONES = [0, 2, 4, 5, 7, 9, 11];
 
 const CZ_NATURAL = ['C', 'D', 'E', 'F', 'G', 'A', 'H'];
 const CZ_SHARP = ['Cis', 'Dis', 'Eis', 'Fis', 'Gis', 'Ais', 'His'];

@@ -4,9 +4,14 @@
 // match. With a mouse a ghost note follows the pointer and a click answers; on a touch
 // screen the first tap places the ghost and a second tap on the same spot (or
 // "Odpovědět") confirms, because staff spaces are narrow under a finger.
+//
+// A click means the note as written there: under a key signature the F line in G dur is
+// fis. The ♭ / ♮ / ♯ buttons override that for the next answer, and pressing the chosen
+// one again goes back to "as written".
 
 import { h, ignoreKey } from '../dom.js';
-import { render, displayRange, stepAtPoint, staffGeometry, noteSlots, SP } from '../staff.js';
+import { render, displayRange, stepAtPoint, staffGeometry, noteSlots, signatureWidth, SP } from '../staff.js';
+import { signatureAcc } from '../keysig.js';
 import { step, midi, czLabel, noteFromStep, parseId } from '../notes.js';
 import { soundingMidi } from '../instruments.js';
 import { pickNext } from '../quiz.js';
@@ -18,8 +23,9 @@ const REFERENCE = parseId('C4');
 const GAP = 1.1; // seconds from the reference to the target
 
 export function start(ctx) {
-  const { svg, controls, pool, clef, instrument, settings } = ctx;
-  const hasAcc = pool.some((n) => n.acc !== 0);
+  const { svg, controls, pool, clef, instrument, settings, signature } = ctx;
+  // Without accidentals in the pool or a signature to depart from, there is nothing to choose.
+  const hasAcc = pool.some((n) => n.acc !== 0) || signature !== null;
   const withRef = settings.earReference;
   // A few steps beyond the pool, so where the clickable area ends gives nothing away.
   const range = displayRange([...pool.map(step), ...(withRef ? [step(REFERENCE)] : [])], clef, ctx.instrumentSteps, 3);
@@ -29,7 +35,7 @@ export function start(ctx) {
   // With the reference on, c¹ keeps the first column of the note area for the whole
   // exercise and the answers move into a wider area to its right.
   const width = withRef ? 18 : 15;
-  const geometry = staffGeometry(clef, range, width);
+  const geometry = staffGeometry(clef, range, width, signatureWidth(signature));
   const refX = geometry.notesX + 1.4 * SP;
   const answerLeft = withRef ? refX + 4 * SP : undefined;
 
@@ -37,7 +43,7 @@ export function start(ctx) {
   let answered = false;
   let played = false;
   let ghostStep = null;
-  let acc = 0;
+  let acc = null; // an explicit ♭ / ♮ / ♯, or null for "as written"
   let timer = 0;
   let shown = []; // the notes in the answer area, so a redraw can keep them
   let refSounding = false;
@@ -81,10 +87,10 @@ export function start(ctx) {
       const b = h('button', {
         type: 'button',
         'aria-label': label,
-        'aria-pressed': String(value === 0),
+        'aria-pressed': 'false',
         onClick: (e) => {
           e.currentTarget.blur();
-          setAcc(value);
+          toggleAcc(value);
         },
       }, symbol);
       accButtons.set(value, b);
@@ -96,6 +102,7 @@ export function start(ctx) {
     h('p', { class: 'hint keys' },
       'Klikni na linku nebo mezeru. ', h('kbd', {}, 'Mezerník'), ' přehraje tón znovu',
       hasAcc ? [', ', h('kbd', {}, '+'), ' / ', h('kbd', {}, '-'), ' / ', h('kbd', {}, '0'), ' volí posuvku'] : '',
+      signature ? ' (bez volby platí předznamenání)' : '',
       '.'),
     h('p', { class: 'hint touch' }, 'Klepni na linku nebo mezeru a potvrď druhým klepnutím.'),
   );
@@ -107,17 +114,26 @@ export function start(ctx) {
     if (withRef) {
       items.unshift({ note: REFERENCE, state: refSounding ? 'reference sounding' : 'reference', x: refX, caption: 'ref.' });
     }
-    render(svg, { clef, range, notes: items, widthSp: width });
+    render(svg, { clef, range, notes: items, widthSp: width, signature });
+  }
+
+  // The note a click at step `s` means: the chosen accidental, else what the signature says.
+  function noteAt(s) {
+    return noteFromStep(s, acc ?? signatureAcc(signature, ((s % 7) + 7) % 7));
   }
 
   function drawGhost() {
-    draw(ghostStep === null ? [] : [{ note: noteFromStep(ghostStep, acc), state: 'ghost' }]);
+    draw(ghostStep === null ? [] : [{ note: noteAt(ghostStep), state: 'ghost' }]);
   }
 
   function setAcc(value) {
-    if (answered) return;
     acc = value;
     for (const [v, b] of accButtons) b.setAttribute('aria-pressed', String(v === value));
+  }
+
+  function toggleAcc(value) {
+    if (answered) return;
+    setAcc(acc === value ? null : value);
     drawGhost();
   }
 
@@ -151,8 +167,7 @@ export function start(ctx) {
     answered = false;
     played = false;
     ghostStep = null;
-    acc = 0;
-    for (const [v, b] of accButtons) b.setAttribute('aria-pressed', String(v === 0));
+    setAcc(null);
     next.hidden = true;
     confirm.hidden = true;
     svg.classList.add('answerable');
@@ -175,7 +190,7 @@ export function start(ctx) {
     answered = true;
     svg.classList.remove('answerable');
     confirm.hidden = true;
-    const given = noteFromStep(s, acc);
+    const given = noteAt(s);
     const ok = midi(given) === midi(target);
     ctx.record(ok);
     if (ok) {
@@ -233,11 +248,11 @@ export function start(ctx) {
       e.preventDefault();
       playTarget();
     } else if (hasAcc && (e.key === '+' || e.key === '#')) {
-      setAcc(1);
+      toggleAcc(1);
     } else if (hasAcc && e.key === '-') {
-      setAcc(-1);
+      toggleAcc(-1);
     } else if (hasAcc && e.key === '0') {
-      setAcc(0);
+      toggleAcc(0);
     }
   }
 

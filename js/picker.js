@@ -9,6 +9,7 @@ import { INSTRUMENTS, getInstrument } from './instruments.js';
 import { CLEFS, getClef } from './clefs.js';
 import { notesInRange, noteId, step, czLabel } from './notes.js';
 import { render, displayRange, widthFor } from './staff.js';
+import { KEYS, REGIONS, getKey, keyName, keyDescription, keySignature, selectNotes } from './selection.js';
 
 const OCTAVE_NAMES = {
   2: 'velká oktáva',
@@ -18,17 +19,6 @@ const OCTAVE_NAMES = {
   6: 'tříčárkovaná oktáva',
   7: 'čtyřčárkovaná oktáva',
 };
-
-// Each preset replaces the selection. `b` is the clef's bottom-line step; the top line is b + 8.
-const PRESETS = [
-  ['V osnově', (n, b) => n.acc === 0 && step(n) >= b && step(n) <= b + 8],
-  ['Linky', (n, b) => n.acc === 0 && step(n) >= b && step(n) <= b + 8 && (step(n) - b) % 2 === 0],
-  ['Mezery', (n, b) => n.acc === 0 && step(n) > b && step(n) < b + 8 && (step(n) - b) % 2 === 1],
-  ['Pod osnovou', (n, b) => n.acc === 0 && step(n) < b],
-  ['Nad osnovou', (n, b) => n.acc === 0 && step(n) > b + 8],
-  ['Vše', (n, b, withAcc) => withAcc || n.acc === 0],
-  ['Nic', () => false],
-];
 
 const PREVIEW_HEIGHT = 110;
 
@@ -59,12 +49,26 @@ export function openSettings(dialog, settings, onClose) {
   }
 
   function build() {
+    // Rebuilding empties the dialog for a moment, which would scroll it back to the top.
+    const scroll = dialog.scrollTop;
     const instrument = getInstrument(settings.instrument);
     const clef = getClef(settings.clef);
     const instrumentSteps = [step(instrument.low), step(instrument.high)];
     const all = notesInRange(instrument.low, instrument.high);
     const selected = new Set(settings.pools[instrument.id]);
     const chips = new Map();
+    const signature = settings.showKeySignature ? keySignature(getKey(settings.key)) : null;
+
+    // A quick selection replaces the pool with the key's notes inside the region.
+    function quickSelect(keyId, regionId) {
+      settings.key = keyId;
+      settings.region = regionId;
+      const picked = selectNotes(all, keyId, regionId, clef);
+      // Sharps and flats in the selection need their chips shown, or it could not be edited.
+      if (picked.some((n) => n.acc !== 0)) settings.showAccidentals = true;
+      settings.pools[instrument.id] = picked.map(noteId);
+      build();
+    }
 
     const count = h('span', { class: 'count' });
     const previewSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -82,6 +86,7 @@ export function openSettings(dialog, settings, onClose) {
         range: displayRange(notes.map(step), clef, instrumentSteps),
         notes: notes.map((note) => ({ note })),
         widthSp: Math.max(12, widthFor(notes.length, spacing)),
+        signature,
       });
       previewSvg.setAttribute('height', PREVIEW_HEIGHT);
       previewSvg.setAttribute('width', Math.round((PREVIEW_HEIGHT * g.width) / g.height));
@@ -115,15 +120,35 @@ export function openSettings(dialog, settings, onClose) {
 
       h('section', {},
         h('h3', {}, 'Noty k procvičení'),
-        h('div', { class: 'presets' }, PRESETS.map(([label, pick]) => h('button', {
+        h('div', { class: 'pick-label' }, 'Tónina'),
+        h('div', { class: 'presets' }, KEYS.map((key) => h('button', {
           type: 'button',
           class: 'chip',
-          onClick: () => {
-            selected.clear();
-            for (const n of all) if (pick(n, clef.bottomLineStep, settings.showAccidentals)) selected.add(noteId(n));
-            commit();
-          },
-        }, label))),
+          'aria-pressed': String(key.id === settings.key),
+          title: keyDescription(key),
+          onClick: () => quickSelect(key.id, settings.region),
+        }, keyName(key)))),
+        h('p', { class: 'key-info' }, keyDescription(getKey(settings.key))),
+        checkbox('Ukazovat v osnově předznamenání tóniny (noty pak bez posuvek)', settings.showKeySignature, (on) => {
+          settings.showKeySignature = on;
+          build();
+        }),
+        h('div', { class: 'pick-label' }, 'Oblast'),
+        h('div', { class: 'presets' },
+          REGIONS.map((region) => h('button', {
+            type: 'button',
+            class: 'chip',
+            'aria-pressed': String(region.id === settings.region),
+            onClick: () => quickSelect(settings.key, region.id),
+          }, region.name)),
+          h('button', {
+            type: 'button',
+            class: 'chip',
+            onClick: () => {
+              selected.clear();
+              commit();
+            },
+          }, 'Nic')),
         checkbox('Včetně posuvek (♯ a ♭)', settings.showAccidentals, (on) => {
           settings.showAccidentals = on;
           if (!on) {
@@ -161,5 +186,6 @@ export function openSettings(dialog, settings, onClose) {
         })),
     );
     commit();
+    dialog.scrollTop = scroll;
   }
 }

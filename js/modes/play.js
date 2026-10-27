@@ -6,7 +6,8 @@
 
 import { h } from '../dom.js';
 import { render, displayRange } from '../staff.js';
-import { step, midi, czLabel, noteFromMidi } from '../notes.js';
+import { step, midi, czLabel } from '../notes.js';
+import { spellMidi } from '../selection.js';
 import { soundingMidi } from '../instruments.js';
 import { pickNext } from '../quiz.js';
 import { createJudge, JUDGE_DEFAULTS } from '../judge.js';
@@ -83,7 +84,7 @@ export function start(ctx) {
     // A wrong note is drawn beside the target only if it fits the current staff;
     // resizing the card mid-exercise would be more distracting than useful.
     if (heard && step(heard) >= range[0] && step(heard) <= range[1]) notes.push({ note: heard, state: 'wrong' });
-    render(svg, { clef, range, notes });
+    render(svg, { clef, range, notes, signature: ctx.signature });
   }
 
   function idlePrompt() {
@@ -115,7 +116,7 @@ export function start(ctx) {
     lastFrameAt = now;
     const rounded = Math.round(frame.midi);
     const cents = (frame.midi - rounded) * 100;
-    tunerNote.textContent = czLabel(noteFromMidi(rounded));
+    tunerNote.textContent = czLabel(spellMidi(rounded, ctx.key));
     needle.style.left = `${50 + cents}%`;
     tuner.classList.remove('idle');
     tuner.classList.toggle('in-tune', Math.abs(cents) < IN_TUNE_CENTS);
@@ -142,7 +143,7 @@ export function start(ctx) {
       timer = setTimeout(advance, 700);
     } else if (verdict.type === 'wrong') {
       missed = true;
-      heard = noteFromMidi(verdict.midi);
+      heard = spellMidi(verdict.midi, ctx.key);
       draw();
       ctx.setFeedback(`Slyším ${czLabel(heard)} – zkus to znovu.`, 'bad');
     }

@@ -3,12 +3,15 @@
 // stops the current one and starts afresh with a new score.
 
 import { h } from './dom.js';
-import { loadSettings, saveSettings, currentInstrument, currentClef, currentPool } from './settings.js';
+import {
+  loadSettings, saveSettings, currentInstrument, currentClef, currentPool, currentKey, currentSignature,
+} from './settings.js';
 import { createStats, record } from './quiz.js';
 import { render, displayRange } from './staff.js';
 import { step } from './notes.js';
 import { unlockAudio } from './audio/context.js';
 import { openSettings } from './picker.js';
+import { keyName } from './selection.js';
 import * as read from './modes/read.js';
 import * as play from './modes/play.js';
 import * as ear from './modes/ear.js';
@@ -54,11 +57,14 @@ function startMode() {
   const instrument = currentInstrument(settings);
   const clef = currentClef(settings);
   const pool = currentPool(settings);
+  const key = currentKey(settings);
+  const signature = currentSignature(settings);
   const instrumentSteps = [step(instrument.low), step(instrument.high)];
-  setupLabel.textContent = `${instrument.name} · ${clef.name} · ${pool.length} not`;
+  setupLabel.textContent = [instrument.name, clef.name, signature && keyName(key), `${pool.length} not`]
+    .filter(Boolean).join(' · ');
 
   if (pool.length === 0) {
-    render(svg, { clef, range: displayRange([], clef, instrumentSteps) });
+    render(svg, { clef, range: displayRange([], clef, instrumentSteps), signature });
     setFeedback('V nastavení vyber aspoň jednu notu k procvičení.');
     controls.append(h('div', { class: 'row' },
       h('button', { type: 'button', class: 'btn primary', onClick: showSettings }, 'Otevřít nastavení')));
@@ -73,6 +79,8 @@ function startMode() {
     clef,
     pool,
     instrumentSteps,
+    key,
+    signature,
     sim,
     setFeedback,
     record: (ok) => {

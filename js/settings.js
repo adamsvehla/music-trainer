@@ -6,6 +6,7 @@
 import { INSTRUMENTS, DEFAULT_INSTRUMENT, getInstrument } from './instruments.js';
 import { CLEFS, DEFAULT_CLEF, getClef } from './clefs.js';
 import { notesInRange, noteId, parseId, step } from './notes.js';
+import { KEYS, REGIONS, DEFAULT_KEY, DEFAULT_REGION, getKey, keySignature } from './selection.js';
 
 const KEY = 'music-trainer:v1';
 export const MODES = ['read', 'play', 'ear'];
@@ -31,6 +32,11 @@ export function loadSettings(storage = globalThis.localStorage) {
     earReference: stored.earReference === true,
     ignoreOctave: stored.ignoreOctave === true,
     showAccidentals: stored.showAccidentals === true,
+    // The last quick selection in the picker, so the next one starts from it.
+    key: KEYS.some((k) => k.id === stored.key) ? stored.key : DEFAULT_KEY,
+    region: REGIONS.some((r) => r.id === stored.region) ? stored.region : DEFAULT_REGION,
+    // Draw that key's signature, so in-key notes appear without their own accidentals.
+    showKeySignature: stored.showKeySignature !== false,
     pools: {},
   };
   // Each instrument keeps its own pool, because the ranges differ. Ids outside the range
@@ -59,6 +65,15 @@ export function currentInstrument(settings) {
 
 export function currentClef(settings) {
   return getClef(settings.clef);
+}
+
+export function currentKey(settings) {
+  return getKey(settings.key);
+}
+
+// The signature the staff should show, or null when it is switched off or the key has none.
+export function currentSignature(settings) {
+  return settings.showKeySignature ? keySignature(currentKey(settings)) : null;
 }
 
 export function currentPool(settings) {

@@ -9,6 +9,7 @@
 
 import { step } from './notes.js';
 import { topLineStep } from './clefs.js';
+import { accidentalsToDraw } from './keysig.js';
 
 export const SP = 10;
 const FONT_SIZE = 4 * SP;
@@ -25,6 +26,13 @@ const ACC = {
 const NOTEHEAD = ''; // noteheadWhole
 const CLEF_X = 0.8; // staff spaces from the left edge
 const NOTES_X = 5.2; // where the note area starts, clear of the clef
+const SIGNATURE_X = 4; // where a key signature starts, just after the clef
+const SIGNATURE_ADVANCE = { 1: 1.05, [-1]: 0.95 }; // per sharp / flat
+
+// Staff spaces a key signature takes up; the note area moves right by this much.
+export function signatureWidth(sig) {
+  return sig?.count ? sig.count * SIGNATURE_ADVANCE[sig.acc] + 0.6 : 0;
+}
 
 // The vertical range [lowStep, highStep] the staff must show: the given notes and the
 // staff itself, widened by `pad` steps and kept inside the instrument's range (except
@@ -51,8 +59,9 @@ export function ledgerSteps(s, clef) {
   return out;
 }
 
-// Coordinate system for a staff showing `range` steps, `widthSp` staff spaces wide.
-export function staffGeometry(clef, range, widthSp) {
+// Coordinate system for a staff showing `range` steps, `widthSp` staff spaces wide plus
+// whatever a key signature (`sigSp` staff spaces) adds in front of the notes.
+export function staffGeometry(clef, range, widthSp, sigSp = 0) {
   const [low, high] = range;
   const marginTop = 2.2 * SP; // headroom for a notehead and the top of the clef
   const marginBottom = 2 * SP;
@@ -65,13 +74,13 @@ export function staffGeometry(clef, range, widthSp) {
   const height = marginTop + ((highest - lowest) * SP) / 2 + marginBottom;
   const y = (s) => yHighest + ((highest - s) * SP) / 2;
   return {
-    width: widthSp * SP,
+    width: (widthSp + sigSp) * SP,
     height,
     range,
     y,
     stepAtY: (py) => Math.round(highest - ((py - yHighest) * 2) / SP),
     lineYs: [0, 2, 4, 6, 8].map((k) => y(clef.bottomLineStep + k)),
-    notesX: NOTES_X * SP,
+    notesX: (NOTES_X + sigSp) * SP,
   };
 }
 
@@ -101,11 +110,13 @@ function el(tag, attrs, text) {
 
 // Draws the staff into `svg`, replacing whatever was there.
 //   notes: [{ note, state?: 'normal' | 'correct' | 'wrong' | 'ghost' | 'muted' | 'reference',
-//             showNatural?: boolean, x?: number, caption?: string }]
-// A caption is set small at the foot of the note's column.
-// Returns the geometry, which stepAtPoint needs for hit-testing.
-export function render(svg, { clef, range, notes = [], widthSp = 15, slots }) {
-  const g = staffGeometry(clef, range, widthSp);
+//             x?: number, caption?: string }]
+//   signature: { acc, count } or null (keysig.js)
+// The notes are read as one bar: each gets the accidental the signature and the notes
+// before it leave it needing (accidentalsToDraw). A caption is set small at the foot of
+// the note's column. Returns the geometry, which stepAtPoint needs for hit-testing.
+export function render(svg, { clef, range, notes = [], widthSp = 15, slots, signature = null }) {
+  const g = staffGeometry(clef, range, widthSp, signatureWidth(signature));
   svg.setAttribute('viewBox', `0 0 ${g.width} ${g.height}`);
   // A transparent backdrop, so pointer events land on the staff even between the lines.
   svg.replaceChildren(el('rect', { class: 'hit', x: 0, y: 0, width: g.width, height: g.height }));
@@ -117,16 +128,28 @@ export function render(svg, { clef, range, notes = [], widthSp = 15, slots }) {
   svg.append(staff);
   svg.append(el('text', { class: 'glyph clef', x: CLEF_X * SP, y: g.y(clef.anchorStep), 'font-size': FONT_SIZE }, clef.glyph));
 
+  if (signature?.count) {
+    const steps = signature.acc > 0 ? clef.sharpSteps : clef.flatSteps;
+    const sig = el('g', { class: 'signature' });
+    for (let i = 0; i < signature.count; i++) {
+      const x = (SIGNATURE_X + i * SIGNATURE_ADVANCE[signature.acc]) * SP;
+      sig.append(el('text', { class: 'glyph', x, y: g.y(steps[i]), 'font-size': FONT_SIZE }, ACC[signature.acc].glyph));
+    }
+    svg.append(sig);
+  }
+
   const xs = slots ?? noteSlots(notes.length, g);
+  const accidentals = accidentalsToDraw(notes.map((item) => item.note), signature);
   notes.forEach((item, i) => {
     const x = item.x ?? xs[i];
-    svg.append(drawNote(item, x, g, clef));
+    svg.append(drawNote(item, accidentals[i], x, g, clef));
   });
   svg.__staff = { geometry: g, clef };
   return g;
 }
 
-function drawNote({ note, state = 'normal', showNatural = false, caption }, x, g, clef) {
+// `accidental` is what to print before the notehead: null for nothing, 0 for a natural.
+function drawNote({ note, state = 'normal', caption }, accidental, x, g, clef) {
   const s = step(note);
   const y = g.y(s);
   const group = el('g', { class: `note ${state}`, 'data-step': s });
@@ -140,8 +163,8 @@ function drawNote({ note, state = 'normal', showNatural = false, caption }, x, g
       y2: ly,
     }));
   }
-  if (note.acc !== 0 || showNatural) {
-    const acc = ACC[note.acc];
+  if (accidental !== null) {
+    const acc = ACC[accidental];
     group.append(el('text', { class: 'glyph', x: x - (acc.w + 0.3) * SP, y, 'font-size': FONT_SIZE }, acc.glyph));
   }
   group.append(el('text', { class: 'glyph', x, y, 'font-size': FONT_SIZE }, NOTEHEAD));

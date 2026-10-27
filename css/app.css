@@ -463,6 +463,10 @@ kbd {
 .chip.acc { font-size: 0.85rem; min-width: 40px; background: var(--soft); }
 .chip.acc[aria-pressed='true'] { background: color-mix(in srgb, var(--accent) 75%, var(--card)); }
 .presets .chip { background: var(--soft); }
+.presets .chip[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.pick-label { margin: 2px 0 6px; font-size: 0.85rem; font-weight: 600; }
+.key-info { margin: -4px 0 12px; font-size: 0.85rem; color: var(--muted); }
 
 .octave { margin-top: 10px; }
 .octave-name { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }

@@ -1,0 +1,11 @@
+{
+  "name": "music-trainer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Notový trenažér: browser-only note reading, playing and ear training.",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test tests/"
+  }
+}

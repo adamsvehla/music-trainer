@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Notový trenažér</title>
+  <meta name="description" content="Procvičování čtení not, hraní podle not a poznávání tónů sluchem.">
+  <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cellipse cx='13' cy='22' rx='7' ry='5' transform='rotate(-20 13 22)' fill='%2323527c'/%3E%3Crect x='18.5' y='4' width='2.5' height='18' fill='%2323527c'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/Bravura.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">Notový trenažér</h1>
+    <nav class="tabs" role="tablist" aria-label="Režim">
+      <button type="button" role="tab" data-mode="read">Čtení</button>
+      <button type="button" role="tab" data-mode="play">Hraní</button>
+      <button type="button" role="tab" data-mode="ear">Poslech</button>
+    </nav>
+    <button type="button" class="icon-btn" id="open-settings" aria-label="Nastavení" title="Nastavení">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+    </button>
+  </header>
+
+  <main class="stage">
+    <div class="status">
+      <button type="button" class="link-btn" id="setup-label"></button>
+      <span id="score" class="score" aria-live="polite"></span>
+    </div>
+    <section class="staff-card">
+      <svg id="staff" role="img" aria-label="Notová osnova"></svg>
+    </section>
+    <p id="feedback" class="feedback" aria-live="polite"></p>
+    <section id="controls" class="controls"></section>
+  </main>
+
+  <dialog id="settings" class="settings" aria-labelledby="settings-title"></dialog>
+</body>
+</html>

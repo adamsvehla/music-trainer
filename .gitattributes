@@ -1,0 +1,5 @@
+# Text stays LF in the repository and in every checkout, whatever core.autocrlf says.
+* text=auto eol=lf
+
+*.mp3 binary
+*.woff2 binary

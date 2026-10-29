@@ -3,6 +3,8 @@
 A browser-only practice tool for reading music in the treble clef. Plain ES modules, no framework,
 no build step, no server-side code: it is a folder of static files.
 
+**Live:** <https://adamsvehla.github.io/music-trainer/>
+
 **Modes** (the UI is Czech, with Czech note names: H = B natural, B = B♭, Cis/Es/As…):
 
 - **Čtení:** a note appears and you name it. With no accidentals in your selection one key press
@@ -94,6 +96,9 @@ The app is the folder as it stands: `index.html`, `css/`, `js/`, `assets/`. Ever
 (`scripts/`, `tests/`, `package.json`) is development-only. Every path is relative, so it can live
 in a subfolder. Any HTTPS static host will do (GitHub Pages, or a folder on existing web hosting);
 HTTPS is what makes the microphone available on a phone or tablet.
+
+The live site is GitHub Pages, deployed from `master`, folder `/`, with every push to `master`.
+`.nojekyll` makes Pages serve the files as they are instead of running them through Jekyll.
 
 ## Known limits
 

@@ -59,11 +59,13 @@ export function stopAll() {
   playing.clear();
 }
 
-// Plays one note or a sequence `gap` seconds apart. Resolves once everything is
-// scheduled; all samples are loaded first so a slow fetch can't stretch the sequence.
-export async function play(folder, midis, { gap = 1.1, duration = 1.6 } = {}) {
+// Plays one note or a sequence `gap` seconds apart on an instrument (instruments.js),
+// at its sample set's own gain. Resolves once everything is scheduled; all samples are
+// loaded first so a slow fetch can't stretch the sequence.
+export async function play(instrument, midis, { gap = 1.1, duration = 1.6 } = {}) {
   const list = Array.isArray(midis) ? midis : [midis];
-  const loaded = await Promise.all(list.map((m) => load(folder, m)));
+  const loaded = await Promise.all(list.map((m) => load(instrument.samples, m)));
+  const level = instrument.gain ?? 1;
   const ctx = audioContext();
   const start = ctx.currentTime + 0.03;
   loaded.forEach((buffer, i) => {
@@ -72,8 +74,8 @@ export async function play(folder, midis, { gap = 1.1, duration = 1.6 } = {}) {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     const env = ctx.createGain();
-    env.gain.setValueAtTime(1, t0);
-    env.gain.setValueAtTime(1, Math.max(t0, end - RELEASE));
+    env.gain.setValueAtTime(level, t0);
+    env.gain.setValueAtTime(level, Math.max(t0, end - RELEASE));
     env.gain.linearRampToValueAtTime(0.0001, end);
     source.connect(env).connect(output());
     const entry = { source, env };

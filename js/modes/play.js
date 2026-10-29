@@ -88,7 +88,7 @@ export function start(ctx, prompt) {
 
   // ?sim: play the target (or a note beside it) through the sampler, whose output is
   // what the detector listens to instead of the microphone.
-  const simPlay = (offset) => () => sampler.play(instrument.samples, soundingMidi(instrument, target) + offset, { duration: 1.4 });
+  const simPlay = (offset) => () => sampler.play(instrument, soundingMidi(instrument, target) + offset, { duration: 1.4 });
   const simRow = sim && h('div', { class: 'row' },
     h('button', { type: 'button', class: 'btn', onClick: simPlay(0) }, '▶ Simulovat správný tón'),
     h('button', { type: 'button', class: 'btn', onClick: simPlay(2) }, '▶ Simulovat vedlejší tón'));
@@ -173,7 +173,7 @@ export function start(ctx, prompt) {
     draw('normal');
     ctx.setFeedback(`Zaznělo ${czLabel(target)}.`);
     sampler.stopAll();
-    sampler.play(instrument.samples, soundingMidi(instrument, target)).catch(() => {});
+    sampler.play(instrument, soundingMidi(instrument, target)).catch(() => {});
     timer = setTimeout(advance, 1800);
   }
 

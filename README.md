@@ -105,6 +105,7 @@ HTTPS is what makes the microphone available on a phone or tablet.
 
 - **Music font:** [Bravura](https://github.com/steinbergmedia/bravura) 1.482 by Steinberg, under
   the SIL Open Font License (`assets/fonts/OFL.txt`).
-- **Samples:** the Fluid R3 GM SoundFont, rendered per note by
-  [gleitz/midi-js-soundfonts](https://github.com/gleitz/midi-js-soundfonts), under CC BY 3.0.
+- **Samples:** rendered per note by
+  [gleitz/midi-js-soundfonts](https://github.com/gleitz/midi-js-soundfonts). The piano is the
+  Fluid R3 GM SoundFont (CC BY 3.0) and the alto sax is the FatBoy soundfont (CC BY-SA 3.0).
   See `assets/samples/ATTRIBUTION.md`.

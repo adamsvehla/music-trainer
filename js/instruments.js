@@ -25,6 +25,10 @@ export const INSTRUMENTS = {
     low: parseId('Bb3'),
     high: parseId('F#6'),
     samples: 'alto-sax',
+    // The FatBoy set is recorded about 8 dB below the Fluid R3 one it replaced (RMS
+    // ~0.015 against ~0.037 in the low and middle register); this restores the old level
+    // with the peaks still near 0.18.
+    gain: 2.5,
     clefs: ['treble'],
   },
 };

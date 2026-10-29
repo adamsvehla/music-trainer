@@ -63,7 +63,7 @@ export function createPrompter({ instrument, withRef, onReference }) {
       clearTimeout(timer);
       setSounding(false);
       endsAt = Infinity;
-      return sampler.play(instrument.samples, list.map((n) => soundingMidi(instrument, n)), { gap: GAP, duration: DURATION })
+      return sampler.play(instrument, list.map((n) => soundingMidi(instrument, n)), { gap: GAP, duration: DURATION })
         .then(() => {
           // play() resolves once everything is scheduled, i.e. as the first note starts.
           endsAt = performance.now() + ((list.length - 1) * GAP + DURATION) * 1000;

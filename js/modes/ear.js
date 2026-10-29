@@ -167,8 +167,9 @@ export function start(ctx) {
     } else {
       draw([{ note: given, state: 'wrong' }, { note: target, state: 'correct' }]);
       ctx.setFeedback(`Ne – zaznělo ${czLabel(target)} (tvoje odpověď: ${czLabel(given)})`, 'bad');
-      sampler.stopAll();
-      sampler.play(folder, [sounding(given), sounding(target)]).catch(() => {});
+      // Your note, then the right one, after the reference (lit on the staff) if it is on,
+      // so the two can be heard against the same starting point as the question.
+      prompter.play([given, target]).catch(() => {});
       next.hidden = false;
     }
   }

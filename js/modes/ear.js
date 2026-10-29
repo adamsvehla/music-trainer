@@ -165,11 +165,12 @@ export function start(ctx) {
       ctx.setFeedback(`Správně – ${czLabel(given)}`, 'ok');
       timer = setTimeout(advance, 900);
     } else {
-      draw([{ note: given, state: 'wrong' }, { note: target, state: 'correct' }]);
+      // Left to right in the order they are played back: the right note, then yours.
+      draw([{ note: target, state: 'correct' }, { note: given, state: 'wrong' }]);
       ctx.setFeedback(`Ne – zaznělo ${czLabel(target)} (tvoje odpověď: ${czLabel(given)})`, 'bad');
-      // Your note, then the right one, after the reference (lit on the staff) if it is on,
+      // The right note, then yours, after the reference (lit on the staff) if it is on,
       // so the two can be heard against the same starting point as the question.
-      prompter.play([given, target]).catch(() => {});
+      prompter.play([target, given]).catch(() => {});
       next.hidden = false;
     }
   }

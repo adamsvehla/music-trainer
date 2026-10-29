@@ -10,7 +10,11 @@ export const DEFAULTS = {
   unvoiced: 0.35, // no dip under the threshold and the best one above this: no pitch at all
   minFreq: 60,
   maxFreq: 2500,
-  minRms: 0.005, // noise gate; below this the buffer is treated as silence
+  // Noise gate; below this the buffer is treated as silence. Kept low because a piano
+  // note decays fast (a sampled h¹ falls under 0.005 within half a second, d³ within a
+  // fifth of one) while its pitch stays perfectly clear; noise is turned away by the
+  // clarity checks instead, here and in the judge.
+  minRms: 0.0015,
 };
 
 export function rms(buf) {

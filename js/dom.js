@@ -10,8 +10,14 @@ export function h(tag, props = {}, ...children) {
     else if (key === 'dataset') Object.assign(node.dataset, value);
     else node.setAttribute(key, value === true ? '' : value);
   }
-  node.append(...children.flat(Infinity).filter((c) => c != null && c !== false && c !== ''));
-  return node;
+  return append(node, ...children);
+}
+
+// Node.append with h()'s rules for children, so `cond && h(...)` can be passed directly:
+// the native append would print a false or null as text.
+export function append(parent, ...children) {
+  parent.append(...children.flat(Infinity).filter((c) => c != null && c !== false && c !== ''));
+  return parent;
 }
 
 // True while a modal dialog is open, so the modes' keyboard shortcuts stand down.

@@ -48,6 +48,12 @@ test('the last quick selection is remembered, an unknown one falls back to C dur
   assert.equal(reset.region, 'staff');
 });
 
+test('all four modes are remembered', () => {
+  for (const mode of ['read', 'play', 'playEar', 'ear']) {
+    assert.equal(loadSettings(memory({ 'music-trainer:v1': JSON.stringify({ mode }) })).mode, mode);
+  }
+});
+
 test('an empty pool is kept as the user chose it', () => {
   const store = memory();
   const s = loadSettings(store);

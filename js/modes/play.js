@@ -1,10 +1,17 @@
-// Mode (b), Hraní: a note appears and the player plays it; the microphone decides.
+// The two Hraní modes: the player plays a note and the microphone decides. The note is
+// given either on the staff (Hraní podle not, prompt 'staff') or by ear (Hraní podle
+// sluchu, prompt 'ear'): the app plays it, after the reference c¹ if that is on, and the
+// staff shows it only once it has been played back or skipped.
 //
 // Everything here is in *written* pitch: the detector reports sounding pitch and the
 // instrument's transposition is undone before the judge or the tuner sees it, so an alto
 // sax player sees the note names they read. The timing rules live in judge.js.
+//
+// By ear the microphone also hears the app's own playback (echo cancellation is off,
+// because it treats a sustained tone as noise), so nothing is heard or judged until the
+// prompt has fallen silent.
 
-import { h } from '../dom.js';
+import { h, append } from '../dom.js';
 import { render, displayRange } from '../staff.js';
 import { step, midi, czLabel } from '../notes.js';
 import { spellMidi } from '../selection.js';
@@ -12,27 +19,35 @@ import { soundingMidi } from '../instruments.js';
 import { pickNext } from '../quiz.js';
 import { createJudge, JUDGE_DEFAULTS } from '../judge.js';
 import { startListener, MicrophoneError } from '../audio/listener.js';
-import { audioRunning } from '../audio/context.js';
+import { audioRunning, unlockAudio, whenAudioRuns } from '../audio/context.js';
 import * as sampler from '../audio/sampler.js';
+import { REFERENCE, referenceLayout, createPrompter } from './reference.js';
 
 const IN_TUNE_CENTS = 15;
 const TUNER_HOLD_MS = 250; // keep showing the last note through a brief dropout
+const QUIET_TAIL_MS = 300; // after the prompt's last note fades, for the room to fall silent
 
-// Remembered across restarts of the mode (a settings change, a tab switch), so a player
-// who turned the microphone on doesn't have to do it again each time.
+// Remembered across restarts of the mode (a settings change, a switch between the two
+// Hraní tabs), so a player who turned the microphone on doesn't have to do it again each time.
 let micWanted = false;
 
 const hz = (m) => 440 * 2 ** ((m - 69) / 12);
 
-export function start(ctx) {
-  const { svg, controls, pool, clef, instrument, settings, sim } = ctx;
-  const steps = pool.map(step);
-  const range = displayRange(steps, clef, ctx.instrumentSteps);
+export function start(ctx, prompt) {
+  const { svg, controls, pool, clef, instrument, settings, sim, signature } = ctx;
+  const byEar = prompt === 'ear';
+  const withRef = byEar && settings.earReference;
+  const range = displayRange([...pool.map(step), ...(withRef ? [step(REFERENCE)] : [])], clef, ctx.instrumentSteps);
+  const layout = referenceLayout({ clef, range, signature, withRef });
+  const prompter = createPrompter({ instrument, withRef, onReference: () => draw() });
   // The detector only has to reach a fourth beyond the instrument's sounding range.
   const minFreq = Math.max(50, hz(soundingMidi(instrument, instrument.low) - 5));
   const maxFreq = hz(soundingMidi(instrument, instrument.high) + 5);
 
   let target = null;
+  let targetState = 'normal';
+  let revealed = false; // by ear: whether the staff shows the target yet
+  let played = false;
   let judge = null;
   let missed = false;
   let recorded = false;
@@ -43,15 +58,25 @@ export function start(ctx) {
   let timer = 0;
   let stopListening = null;
   let stopped = false;
+  let cancelPending = () => {};
+
+  if (byEar) sampler.preload(instrument.samples, [...pool, REFERENCE].map((n) => soundingMidi(instrument, n)));
 
   const micButton = h('button', { type: 'button', class: 'btn primary', onClick: () => toggleMic() });
+  const replay = byEar && h('button', {
+    type: 'button',
+    class: 'btn',
+    onClick: (e) => {
+      e.currentTarget.blur();
+      playPrompt();
+    },
+  }, '▶ Přehrát');
   const skip = h('button', {
     type: 'button',
     class: 'btn',
     onClick: (e) => {
       e.currentTarget.blur();
-      if (!recorded) ctx.record(false);
-      advance();
+      skipNote();
     },
   }, 'Přeskočit');
 
@@ -68,7 +93,12 @@ export function start(ctx) {
     h('button', { type: 'button', class: 'btn', onClick: simPlay(0) }, '▶ Simulovat správný tón'),
     h('button', { type: 'button', class: 'btn', onClick: simPlay(2) }, '▶ Simulovat vedlejší tón'));
 
-  controls.append(tuner, h('div', { class: 'row' }, micButton, skip), simRow);
+  append(controls,
+    tuner,
+    h('div', { class: 'row' }, micButton, replay, skip),
+    simRow,
+    byEar && h('p', { class: 'hint' }, 'Během přehrávání mikrofon neposlouchá, takže začni hrát, až tón dozní.'),
+  );
   setMicLabel();
 
   function setMicLabel() {
@@ -79,28 +109,72 @@ export function start(ctx) {
     micButton.classList.toggle('primary', !on);
   }
 
-  function draw(state = 'normal') {
-    const notes = [{ note: target, state }];
+  function draw(state = targetState) {
+    targetState = state.replace(' pop', '');
+    const notes = [];
+    if (!byEar || revealed) notes.push({ note: target, state });
     // A wrong note is drawn beside the target only if it fits the current staff;
     // resizing the card mid-exercise would be more distracting than useful.
     if (heard && step(heard) >= range[0] && step(heard) <= range[1]) notes.push({ note: heard, state: 'wrong' });
-    render(svg, { clef, range, notes, signature: ctx.signature });
+    render(svg, { clef, range, notes: layout.place(notes, prompter.referenceSounding), widthSp: layout.width, signature });
   }
 
   function idlePrompt() {
-    ctx.setFeedback(stopListening ? 'Zahraj zobrazenou notu.' : 'Zapni mikrofon a zahraj zobrazenou notu.');
+    if (byEar) {
+      ctx.setFeedback(stopListening ? 'Poslouchej a zahraj stejný tón.' : 'Zapni mikrofon, poslouchej a zahraj stejný tón.');
+    } else {
+      ctx.setFeedback(stopListening ? 'Zahraj zobrazenou notu.' : 'Zapni mikrofon a zahraj zobrazenou notu.');
+    }
+  }
+
+  function playPrompt() {
+    if (!target) return;
+    unlockAudio();
+    played = true;
+    prompter.play([target]).catch(() => ctx.setFeedback('Zvuk se nepodařilo načíst.', 'bad'));
   }
 
   function advance() {
     clearTimeout(timer);
     waiting = false;
     target = pickNext(pool, target);
+    revealed = false;
+    played = false;
     missed = false;
     recorded = false;
     heard = null;
     judge = createJudge({ target: midi(target), ignoreOctave: settings.ignoreOctave, blockedMidi: lastHeard });
     draw('normal pop');
     idlePrompt();
+    if (!byEar) return;
+    // Before any gesture on this page load the browser will not start sound by itself;
+    // the prompt then plays on the first tap anywhere (or on ▶ Přehrát).
+    if (!audioRunning()) ctx.setFeedback('Klepni na ▶ Přehrát, poslouchej a zahraj stejný tón.');
+    cancelPending();
+    cancelPending = whenAudioRuns(() => {
+      if (!played && !stopped) {
+        if (!waiting) idlePrompt();
+        playPrompt();
+      }
+    });
+  }
+
+  function skipNote() {
+    if (!recorded) ctx.record(false);
+    recorded = true;
+    if (!byEar || waiting) {
+      advance();
+      return;
+    }
+    // By ear the player never saw the note, so show (and play) it before moving on.
+    waiting = true;
+    revealed = true;
+    heard = null;
+    draw('normal');
+    ctx.setFeedback(`Zaznělo ${czLabel(target)}.`);
+    sampler.stopAll();
+    sampler.play(instrument.samples, soundingMidi(instrument, target)).catch(() => {});
+    timer = setTimeout(advance, 1800);
   }
 
   function updateTuner(frame, level, now) {
@@ -124,6 +198,12 @@ export function start(ctx) {
 
   function onFrame(frame, level, now) {
     if (stopped) return;
+    // While the prompt is sounding, what comes in is the app itself.
+    if (byEar && now < prompter.endsAt + QUIET_TAIL_MS) {
+      lastHeard = null;
+      updateTuner(null, 0, now);
+      return;
+    }
     // From here on, pitch means written pitch.
     const written = frame && frame.clarity >= JUDGE_DEFAULTS.minClarity
       ? { midi: frame.midi - instrument.transpose, clarity: frame.clarity }
@@ -138,9 +218,10 @@ export function start(ctx) {
       if (!recorded) ctx.record(!missed);
       recorded = true;
       heard = null;
+      revealed = true;
       draw('correct');
       ctx.setFeedback(`Správně – ${czLabel(target)}`, 'ok');
-      timer = setTimeout(advance, 700);
+      timer = setTimeout(advance, byEar ? 1100 : 700);
     } else if (verdict.type === 'wrong') {
       missed = true;
       heard = spellMidi(verdict.midi, ctx.key);
@@ -186,8 +267,10 @@ export function start(ctx) {
 
   return () => {
     stopped = true;
+    cancelPending();
+    prompter.stop();
     clearTimeout(timer);
     stopListening?.();
-    if (sim) sampler.stopAll();
+    if (byEar || sim) sampler.stopAll();
   };
 }

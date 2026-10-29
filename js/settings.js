@@ -9,7 +9,7 @@ import { notesInRange, noteId, parseId, step } from './notes.js';
 import { KEYS, REGIONS, DEFAULT_KEY, DEFAULT_REGION, getKey, keySignature } from './selection.js';
 
 const KEY = 'music-trainer:v1';
-export const MODES = ['read', 'play', 'ear'];
+export const MODES = ['read', 'play', 'playEar', 'ear'];
 
 // The naturals on the five lines and four spaces of the treble staff, e¹–f².
 export function defaultPool(instrument) {
@@ -29,6 +29,7 @@ export function loadSettings(storage = globalThis.localStorage) {
     mode: MODES.includes(stored.mode) ? stored.mode : 'read',
     instrument: INSTRUMENTS[stored.instrument] ? stored.instrument : DEFAULT_INSTRUMENT,
     clef: CLEFS[stored.clef] ? stored.clef : DEFAULT_CLEF,
+    // The reference c¹ before any note the app plays to the player (Poslech, Hraní by ear).
     earReference: stored.earReference === true,
     ignoreOctave: stored.ignoreOctave === true,
     showAccidentals: stored.showAccidentals === true,

@@ -9,8 +9,12 @@ no build step, no server-side code: it is a folder of static files.
   answers (`C D E F G A H`). With accidentals you type the name (`fis`, `es`, `b`): a name that
   cannot grow any longer submits by itself, otherwise press Enter. On a touch screen use the
   buttons.
-- **Hraní:** a note appears, you play it, and the microphone decides. A small tuner shows what it
-  hears, in the *written* pitch of the selected instrument.
+- **Hraní podle not:** a note appears, you play it, and the microphone decides. A small tuner
+  shows what it hears, in the *written* pitch of the selected instrument.
+- **Hraní podle sluchu:** the app plays a note and you play it back. An optional reference c¹
+  plays first. The staff shows the note once you have got it, or once you skip it. The microphone
+  ignores everything until the app's own sound has died away, because echo cancellation is off
+  for the sake of musical tones.
 - **Poslech:** the app plays a note and you click its line or space on the staff. On a touch
   screen you tap once to place it and tap again to confirm. An optional reference c¹ plays first.
 
@@ -56,7 +60,7 @@ The tests use Node's built-in runner and cover:
 - the timing rules that decide a played note is right or wrong;
 - settings persistence.
 
-`?sim` on the URL replaces the microphone in the Hraní mode with the app's own sampler. Two extra
+`?sim` on the URL replaces the microphone in both Hraní modes with the app's own sampler. Two extra
 buttons then play the correct note or the one beside it into the detector, so that mode can be
 checked end to end without an instrument.
 

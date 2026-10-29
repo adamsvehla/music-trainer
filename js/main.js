@@ -16,7 +16,13 @@ import * as read from './modes/read.js';
 import * as play from './modes/play.js';
 import * as ear from './modes/ear.js';
 
-const MODES = { read, play, ear };
+// Both kinds of Hraní are one module; only the way the note is given differs.
+const MODES = {
+  read,
+  play: { start: (ctx) => play.start(ctx, 'staff') },
+  playEar: { start: (ctx) => play.start(ctx, 'ear') },
+  ear,
+};
 
 const svg = document.getElementById('staff');
 const controls = document.getElementById('controls');
@@ -74,6 +80,7 @@ function startMode() {
   stopMode = MODES[settings.mode].start({
     svg,
     controls,
+
     settings,
     instrument,
     clef,

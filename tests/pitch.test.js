@@ -44,6 +44,11 @@ test('a weak fundamental under a strong second harmonic (sax-like) is not read a
   }
 });
 
+test('a quiet tone, like the tail of a piano note, is still heard', () => {
+  const r = detectPitch(tone(587.33, [1, 0.4, 0.2], 0.0025), RATE);
+  assert.ok(r && Math.abs(cents(r.freq, 587.33)) < 20, `read as ${r?.freq}`);
+});
+
 test('silence and noise give no pitch', () => {
   assert.equal(detectPitch(new Float32Array(SIZE), RATE), null);
   let seed = 1;

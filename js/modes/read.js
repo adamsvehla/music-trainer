@@ -7,7 +7,7 @@
 // types the Czech name ("fis", "es", "b"), which submits by itself once it cannot grow
 // into a longer name, or with Enter.
 
-import { h, ignoreKey } from '../dom.js';
+import { h, append, ignoreKey } from '../dom.js';
 import { render, displayRange } from '../staff.js';
 import { step, czName, czLabel, parseCz, isCzPrefix, czCanExtend } from '../notes.js';
 import { pickNext } from '../quiz.js';
@@ -57,7 +57,7 @@ export function start(ctx) {
     ? ['Na klávesnici napiš název (např. ', h('kbd', {}, 'fis'), ', ', h('kbd', {}, 'es'), ', ', h('kbd', {}, 'b'), ') a případně potvrď ', h('kbd', {}, 'Enter'), '.']
     : ['Na klávesnici stačí stisknout písmeno ', NATURALS.map((n) => [h('kbd', {}, n), ' ']), '.'];
 
-  controls.append(
+  append(controls,
     h('div', { class: 'answers' },
       hasSharps && answerRow(SHARPS, 'acc'),
       answerRow(NATURALS, 'nat'),

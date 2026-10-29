@@ -4,7 +4,7 @@
 
 export const JUDGE_DEFAULTS = {
   holdCorrect: 120, // ms the right note has to stay steady before it counts
-  holdWrong: 300, // ms a wrong note has to stay steady before it is reported
+  holdWrong: 250, // ms a wrong note has to stay steady before it is reported (a high piano note is gone in ~300)
   minClarity: 0.8, // frames below this are breath, noise or a note changing
   sameNote: 0.65, // semitones within which a frame still belongs to the current candidate
 };

@@ -23,3 +23,21 @@ export function unlockAudio() {
 export function audioRunning() {
   return ctx?.state === 'running';
 }
+
+// Calls fn once the context runs: now, or when a later gesture unlocks it. A resume()
+// promise is no use for this: called before any gesture it can settle while the context
+// stays suspended. Returns a function that cancels the wait.
+export function whenAudioRuns(fn) {
+  const c = audioContext();
+  if (c.state === 'running') {
+    fn();
+    return () => {};
+  }
+  const onChange = () => {
+    if (c.state !== 'running') return;
+    c.removeEventListener('statechange', onChange);
+    fn();
+  };
+  c.addEventListener('statechange', onChange);
+  return () => c.removeEventListener('statechange', onChange);
+}

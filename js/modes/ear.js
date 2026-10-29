@@ -9,18 +9,15 @@
 // fis. The ♭ / ♮ / ♯ buttons override that for the next answer, and pressing the chosen
 // one again goes back to "as written".
 
-import { h, ignoreKey } from '../dom.js';
-import { render, displayRange, stepAtPoint, staffGeometry, noteSlots, signatureWidth, SP } from '../staff.js';
+import { h, append, ignoreKey } from '../dom.js';
+import { render, displayRange, stepAtPoint } from '../staff.js';
 import { signatureAcc } from '../keysig.js';
-import { step, midi, czLabel, noteFromStep, parseId } from '../notes.js';
+import { step, midi, czLabel, noteFromStep } from '../notes.js';
 import { soundingMidi } from '../instruments.js';
 import { pickNext } from '../quiz.js';
 import * as sampler from '../audio/sampler.js';
-import { audioRunning, unlockAudio } from '../audio/context.js';
-
-// The optional reference before each target: written c¹, whatever the instrument.
-const REFERENCE = parseId('C4');
-const GAP = 1.1; // seconds from the reference to the target
+import { audioRunning, unlockAudio, whenAudioRuns } from '../audio/context.js';
+import { REFERENCE, referenceLayout, createPrompter } from './reference.js';
 
 export function start(ctx) {
   const { svg, controls, pool, clef, instrument, settings, signature } = ctx;
@@ -32,12 +29,8 @@ export function start(ctx) {
   const folder = instrument.samples;
   const sounding = (n) => soundingMidi(instrument, n);
 
-  // With the reference on, c¹ keeps the first column of the note area for the whole
-  // exercise and the answers move into a wider area to its right.
-  const width = withRef ? 18 : 15;
-  const geometry = staffGeometry(clef, range, width, signatureWidth(signature));
-  const refX = geometry.notesX + 1.4 * SP;
-  const answerLeft = withRef ? refX + 4 * SP : undefined;
+  const layout = referenceLayout({ clef, range, signature, withRef });
+  const prompter = createPrompter({ instrument, withRef, onReference: () => draw() });
 
   let target = null;
   let answered = false;
@@ -46,9 +39,7 @@ export function start(ctx) {
   let acc = null; // an explicit ♭ / ♮ / ♯, or null for "as written"
   let timer = 0;
   let shown = []; // the notes in the answer area, so a redraw can keep them
-  let refSounding = false;
-  let refTimer = 0;
-  let stopped = false;
+  let cancelPending = () => {};
 
   sampler.preload(folder, [...pool, REFERENCE].map(sounding));
 
@@ -97,7 +88,7 @@ export function start(ctx) {
       return b;
     }));
 
-  controls.append(
+  append(controls,
     h('div', { class: 'row' }, replay, accGroup, confirm, next),
     h('p', { class: 'hint keys' },
       'Klikni na linku nebo mezeru. ', h('kbd', {}, 'Mezerník'), ' přehraje tón znovu',
@@ -109,12 +100,7 @@ export function start(ctx) {
 
   function draw(notes = shown) {
     shown = notes;
-    const xs = noteSlots(notes.length, geometry, answerLeft);
-    const items = notes.map((n, i) => ({ ...n, x: xs[i] }));
-    if (withRef) {
-      items.unshift({ note: REFERENCE, state: refSounding ? 'reference sounding' : 'reference', x: refX, caption: 'ref.' });
-    }
-    render(svg, { clef, range, notes: items, widthSp: width, signature });
+    render(svg, { clef, range, notes: layout.place(notes, prompter.referenceSounding), widthSp: layout.width, signature });
   }
 
   // The note a click at step `s` means: the chosen accidental, else what the signature says.
@@ -141,24 +127,7 @@ export function start(ctx) {
     if (!target) return;
     unlockAudio();
     played = true;
-    const notes = withRef ? [REFERENCE, target] : [target];
-    sampler.stopAll();
-    clearTimeout(refTimer);
-    setRefSounding(false);
-    sampler.play(folder, notes.map(sounding), { gap: GAP })
-      .then(() => {
-        // play() resolves once the notes are scheduled, i.e. as the reference starts.
-        if (!withRef || stopped) return;
-        setRefSounding(true);
-        refTimer = setTimeout(() => setRefSounding(false), GAP * 1000);
-      })
-      .catch(() => ctx.setFeedback('Zvuk se nepodařilo načíst.', 'bad'));
-  }
-
-  function setRefSounding(on) {
-    if (stopped || refSounding === on) return;
-    refSounding = on;
-    draw();
+    prompter.play([target]).catch(() => ctx.setFeedback('Zvuk se nepodařilo načíst.', 'bad'));
   }
 
   function advance() {
@@ -172,17 +141,15 @@ export function start(ctx) {
     confirm.hidden = true;
     svg.classList.add('answerable');
     draw([]);
-    if (audioRunning()) {
+    // Before any gesture on this page load the browser will not start sound by itself;
+    // the target then plays on the first tap anywhere (or on ▶ Přehrát).
+    if (!audioRunning()) ctx.setFeedback('Klepni na ▶ Přehrát a najdi notu v osnově.');
+    cancelPending();
+    cancelPending = whenAudioRuns(() => {
+      if (played || answered) return;
       ctx.setFeedback('Poslouchej a najdi notu v osnově.');
       playTarget();
-    } else {
-      // No gesture yet on this page load: the browser will not start sound by itself.
-      ctx.setFeedback('Klepni na ▶ Přehrát a najdi notu v osnově.');
-      const current = target;
-      unlockAudio().then(() => {
-        if (audioRunning() && target === current && !played && !answered) playTarget();
-      });
-    }
+    });
   }
 
   function answer(s) {
@@ -263,9 +230,9 @@ export function start(ctx) {
   advance();
 
   return () => {
-    stopped = true;
+    cancelPending();
+    prompter.stop();
     clearTimeout(timer);
-    clearTimeout(refTimer);
     sampler.stopAll();
     svg.classList.remove('answerable');
     svg.removeEventListener('pointermove', onPointerMove);

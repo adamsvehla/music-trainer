@@ -105,6 +105,7 @@ button:focus-visible, input:focus-visible {
   border-radius: 999px;
   font-weight: 550;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .tabs button[aria-selected='true'] {
@@ -126,10 +127,19 @@ button:focus-visible, input:focus-visible {
 
 .icon-btn svg { width: 22px; height: 22px; }
 
-@media (max-width: 560px) {
+/* Four tabs and the title don't fit side by side until a wide window. */
+@media (max-width: 760px) {
   .brand { display: none; }
   .tabs { margin-left: 0; flex: 1; }
   .tabs button { flex: 1; padding: 8px 6px; }
+}
+
+/* On a phone "podle not" / "podle sluchu" goes under "Hraní", smaller, so the four tabs
+   share the row evenly instead of squeezing the long ones. */
+@media (max-width: 560px) {
+  .tabs { border-radius: 18px; }
+  .tabs button { padding: 6px 2px; border-radius: 14px; font-size: 0.9rem; line-height: 1.15; }
+  .tabs button span { display: block; font-size: 0.72rem; font-weight: 500; }
 }
 
 /* ---- Stage ---- */

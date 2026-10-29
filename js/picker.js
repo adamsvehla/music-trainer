@@ -178,7 +178,7 @@ export function openSettings(dialog, settings, onClose) {
 
       h('section', {},
         h('h3', {}, 'Možnosti'),
-        checkbox('Poslech: před každým tónem zahrát referenční c¹', settings.earReference, (on) => {
+        checkbox('Před každým přehraným tónem zahrát referenční c¹ (Poslech, Hraní podle sluchu)', settings.earReference, (on) => {
           settings.earReference = on;
         }),
         checkbox('Hraní: uznat notu v jakékoli oktávě', settings.ignoreOctave, (on) => {

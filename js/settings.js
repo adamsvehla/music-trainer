@@ -7,9 +7,21 @@ import { INSTRUMENTS, DEFAULT_INSTRUMENT, getInstrument } from './instruments.js
 import { CLEFS, DEFAULT_CLEF, getClef } from './clefs.js';
 import { notesInRange, noteId, parseId, step } from './notes.js';
 import { KEYS, REGIONS, DEFAULT_KEY, DEFAULT_REGION, getKey, keySignature } from './selection.js';
+import { ALL_INTERVALS } from './intervals.js';
 
 const KEY = 'music-trainer:v1';
-export const MODES = ['read', 'play', 'playEar', 'ear'];
+
+// The header tabs and, for groups with more than one, the modes on the staff card's tabs.
+export const GROUPS = [
+  { id: 'read', name: 'Čtení', modes: [['read', 'Čtení']] },
+  { id: 'play', name: 'Hraní', modes: [['play', 'Podle not'], ['playEar', 'Podle sluchu']] },
+  { id: 'listen', name: 'Poslech', modes: [['ear', 'Nota'], ['direction', 'Nahoru / dolů'], ['intervals', 'Intervaly']] },
+];
+export const MODES = GROUPS.flatMap((g) => g.modes.map(([mode]) => mode));
+
+export function groupOf(mode) {
+  return GROUPS.find((g) => g.modes.some(([m]) => m === mode)) ?? GROUPS[0];
+}
 
 // The naturals on the five lines and four spaces of the treble staff, e¹–f².
 export function defaultPool(instrument) {
@@ -27,6 +39,15 @@ export function loadSettings(storage = globalThis.localStorage) {
   }
   const settings = {
     mode: MODES.includes(stored.mode) ? stored.mode : 'read',
+    // The mode last used in each group, so its header tab returns there.
+    lastModes: Object.fromEntries(GROUPS.flatMap((g) => {
+      const mode = stored.lastModes?.[g.id];
+      return g.modes.some(([m]) => m === mode) ? [[g.id, mode]] : [];
+    })),
+    // Poslech · Intervaly: which intervals are asked, in semitones.
+    intervals: Array.isArray(stored.intervals)
+      ? ALL_INTERVALS.filter((s) => stored.intervals.includes(s))
+      : [...ALL_INTERVALS],
     instrument: INSTRUMENTS[stored.instrument] ? stored.instrument : DEFAULT_INSTRUMENT,
     clef: CLEFS[stored.clef] ? stored.clef : DEFAULT_CLEF,
     // The reference c¹ before any note the app plays to the player (Poslech, Hraní by ear).

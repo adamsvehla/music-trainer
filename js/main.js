@@ -1,10 +1,13 @@
-// Boot and wiring: settings, the mode tabs, the score line and the settings dialog.
+// Boot and wiring: settings, the tabs, the score line and the settings dialog.
 // Each mode is a module with start(ctx) → stop(); switching modes or changing settings
-// stops the current one and starts afresh with a new score.
+// stops the current one and starts afresh with a new score. The header tabs pick a
+// group (GROUPS in settings.js); a group with several modes shows them as tabs on the
+// staff card, and coming back to a group returns to the mode last used in it.
 
 import { h } from './dom.js';
 import {
-  loadSettings, saveSettings, currentInstrument, currentClef, currentPool, currentKey, currentSignature,
+  GROUPS, groupOf, loadSettings, saveSettings,
+  currentInstrument, currentClef, currentPool, currentKey, currentSignature,
 } from './settings.js';
 import { createStats, record } from './quiz.js';
 import { render, displayRange } from './staff.js';
@@ -15,6 +18,8 @@ import { keyName } from './selection.js';
 import * as read from './modes/read.js';
 import * as play from './modes/play.js';
 import * as ear from './modes/ear.js';
+import * as direction from './modes/direction.js';
+import * as intervals from './modes/intervals.js';
 
 // Both kinds of Hraní are one module; only the way the note is given differs.
 const MODES = {
@@ -22,6 +27,8 @@ const MODES = {
   play: { start: (ctx) => play.start(ctx, 'staff') },
   playEar: { start: (ctx) => play.start(ctx, 'ear') },
   ear,
+  direction,
+  intervals,
 };
 
 const svg = document.getElementById('staff');
@@ -30,7 +37,8 @@ const feedback = document.getElementById('feedback');
 const score = document.getElementById('score');
 const setupLabel = document.getElementById('setup-label');
 const dialog = document.getElementById('settings');
-const tabs = [...document.querySelectorAll('.tabs [data-mode]')];
+const tabs = [...document.querySelectorAll('.tabs [data-group]')];
+const subtabs = document.getElementById('subtabs');
 
 // ?sim replaces the microphone with the app's own playback (see modes/play.js).
 const sim = new URLSearchParams(location.search).has('sim');
@@ -56,7 +64,7 @@ function startMode() {
   stopMode = null;
   stats = createStats();
   renderScore();
-  for (const tab of tabs) tab.setAttribute('aria-selected', String(tab.dataset.mode === settings.mode));
+  renderTabs();
   controls.replaceChildren();
   setFeedback('');
 
@@ -90,6 +98,7 @@ function startMode() {
     signature,
     sim,
     setFeedback,
+    openSettings: showSettings,
     record: (ok) => {
       record(stats, ok);
       renderScore();
@@ -97,20 +106,40 @@ function startMode() {
   });
 }
 
+function renderTabs() {
+  const group = groupOf(settings.mode);
+  for (const tab of tabs) tab.setAttribute('aria-selected', String(tab.dataset.group === group.id));
+  subtabs.replaceChildren(...(group.modes.length < 2 ? [] : [h('div', { class: 'group' },
+    group.modes.map(([mode, label]) => h('button', {
+      type: 'button',
+      role: 'tab',
+      'aria-selected': String(mode === settings.mode),
+      onClick: () => selectMode(mode),
+    }, label)))]));
+}
+
+function selectMode(mode) {
+  if (mode === settings.mode) return;
+  settings.mode = mode;
+  settings.lastModes[groupOf(mode).id] = mode;
+  saveSettings(settings);
+  startMode();
+}
+
 function showSettings() {
-  openSettings(dialog, settings, (changed) => {
-    if (!changed) return;
-    saveSettings(settings);
-    startMode();
+  openSettings(dialog, settings, {
+    onChange: () => saveSettings(settings),
+    onClose: (changed) => {
+      if (changed) startMode();
+    },
   });
 }
 
 for (const tab of tabs) {
   tab.addEventListener('click', () => {
-    if (tab.dataset.mode === settings.mode) return;
-    settings.mode = tab.dataset.mode;
-    saveSettings(settings);
-    startMode();
+    const group = GROUPS.find((g) => g.id === tab.dataset.group);
+    if (group === groupOf(settings.mode)) return;
+    selectMode(settings.lastModes[group.id] ?? group.modes[0][0]);
   });
 }
 document.getElementById('open-settings').addEventListener('click', showSettings);

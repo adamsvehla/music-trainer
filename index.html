@@ -16,10 +16,9 @@
   <header class="topbar">
     <h1 class="brand">Notový trenažér</h1>
     <nav class="tabs" role="tablist" aria-label="Režim">
-      <button type="button" role="tab" data-mode="read">Čtení</button>
-      <button type="button" role="tab" data-mode="play">Hraní <span>podle not</span></button>
-      <button type="button" role="tab" data-mode="playEar">Hraní <span>podle sluchu</span></button>
-      <button type="button" role="tab" data-mode="ear">Poslech</button>
+      <button type="button" role="tab" data-group="read">Čtení</button>
+      <button type="button" role="tab" data-group="play">Hraní</button>
+      <button type="button" role="tab" data-group="listen">Poslech</button>
     </nav>
     <button type="button" class="icon-btn" id="open-settings" aria-label="Nastavení" title="Nastavení">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
@@ -32,6 +31,7 @@
       <span id="score" class="score" aria-live="polite"></span>
     </div>
     <section class="staff-card">
+      <nav id="subtabs" class="subtabs" role="tablist" aria-label="Cvičení"></nav>
       <svg id="staff" role="img" aria-label="Notová osnova"></svg>
     </section>
     <p id="feedback" class="feedback" aria-live="polite"></p>

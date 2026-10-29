@@ -5,20 +5,30 @@ no build step, no server-side code: it is a folder of static files.
 
 **Live:** <https://adamsvehla.github.io/music-trainer/>
 
-**Modes** (the UI is Czech, with Czech note names: H = B natural, B = B♭, Cis/Es/As…):
+**Modes** (the UI is Czech, with Czech note names: H = B natural, B = B♭, Cis/Es/As…). The header
+has three tabs, Čtení, Hraní and Poslech. Hraní and Poslech offer their variants as tabs on the
+staff card, and each remembers the one you used last.
 
 - **Čtení:** a note appears and you name it. With no accidentals in your selection one key press
   answers (`C D E F G A H`). With accidentals you type the name (`fis`, `es`, `b`): a name that
   cannot grow any longer submits by itself, otherwise press Enter. On a touch screen use the
   buttons.
-- **Hraní podle not:** a note appears, you play it, and the microphone decides. A small tuner
+- **Hraní · Podle not:** a note appears, you play it, and the microphone decides. A small tuner
   shows what it hears, in the *written* pitch of the selected instrument.
-- **Hraní podle sluchu:** the app plays a note and you play it back. An optional reference c¹
+- **Hraní · Podle sluchu:** the app plays a note and you play it back. An optional reference c¹
   plays first. The staff shows the note once you have got it, or once you skip it. The microphone
   ignores everything until the app's own sound has died away, because echo cancellation is off
   for the sake of musical tones.
-- **Poslech:** the app plays a note and you click its line or space on the staff. On a touch
-  screen you tap once to place it and tap again to confirm. An optional reference c¹ plays first.
+- **Poslech · Nota:** the app plays a note and you click its line or space on the staff. On a
+  touch screen you tap once to place it and tap again to confirm. An optional reference c¹ plays
+  first.
+- **Poslech · Nahoru / dolů:** two of your selected notes play, and you say whether the melody went
+  up or down (buttons or the ↑/↓ keys).
+- **Poslech · Intervaly:** two notes play, a melodic interval up or down, and you name it, from
+  malá sekunda to čistá oktáva. The intervals asked are chosen in the settings, all twelve by
+  default. The first note is one of your selected notes; the second follows from the interval and
+  can lie outside them, but never outside the instrument's range. The staff then shows both, with
+  the second spelled on the interval's letter (c¹ up a malá tercie is es¹, not dis¹).
 
 **Settings** (the sliders button) cover the instrument (piano, or alto sax in E♭), the clef (treble
 for now) and exactly which notes to practise. For a quick selection you pick a key and a region:
@@ -26,7 +36,8 @@ for now) and exactly which notes to practise. For a quick selection you pick a k
 - **Regions:** on the staff, lines, spaces, below, above, or the whole range.
 
 The app then selects that key's notes in that region, spelled as the key spells them. You can
-still toggle single notes afterwards. Everything is saved in the browser's localStorage.
+still toggle single notes afterwards. Every change is saved in the browser's localStorage as it is
+made, along with the tab you are on, so a reload brings everything back.
 
 **Key signature.** By default the staff shows the chosen key's signature, so notes in the key
 appear without their own accidentals. Reading then means reading the signature: a bare note on the

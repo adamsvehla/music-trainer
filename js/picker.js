@@ -1,8 +1,10 @@
-// The settings dialog: instrument, clef, the notes to practise, and per-mode options.
+// The settings dialog: instrument, clef, the notes to practise, the intervals for
+// Poslech · Intervaly, and per-mode options.
 //
-// It edits the settings object in place. Closing the dialog (Hotovo, Esc or the
-// backdrop) reports whether anything changed, and main.js then saves and restarts the
-// current mode.
+// It edits the settings object in place and calls onChange() after every edit, so each
+// one is saved at once: a page reloaded, or a phone tab killed in the background, with
+// the dialog still open loses nothing. Closing the dialog (Hotovo, Esc or the backdrop)
+// calls onClose(changed), and main.js restarts the current mode if anything changed.
 
 import { h } from './dom.js';
 import { INSTRUMENTS, getInstrument } from './instruments.js';
@@ -10,6 +12,7 @@ import { CLEFS, getClef } from './clefs.js';
 import { notesInRange, noteId, step, czLabel } from './notes.js';
 import { render, displayRange, widthFor } from './staff.js';
 import { KEYS, REGIONS, getKey, keyName, keyDescription, keySignature, selectNotes } from './selection.js';
+import { INTERVALS, ALL_INTERVALS } from './intervals.js';
 
 const OCTAVE_NAMES = {
   2: 'velká oktáva',
@@ -22,7 +25,7 @@ const OCTAVE_NAMES = {
 
 const PREVIEW_HEIGHT = 110;
 
-export function openSettings(dialog, settings, onClose) {
+export function openSettings(dialog, settings, { onChange, onClose }) {
   const before = JSON.stringify(settings);
   const body = h('div', { class: 'settings-inner' });
   const footer = h('div', { class: 'settings-footer' },
@@ -90,6 +93,8 @@ export function openSettings(dialog, settings, onClose) {
       });
       previewSvg.setAttribute('height', PREVIEW_HEIGHT);
       previewSvg.setAttribute('width', Math.round((PREVIEW_HEIGHT * g.width) / g.height));
+      // Every pool edit ends here, and so does every rebuild after any other change.
+      onChange();
     }
 
     const octaves = new Map();
@@ -177,12 +182,34 @@ export function openSettings(dialog, settings, onClose) {
           }))))),
 
       h('section', {},
+        h('h3', {}, 'Intervaly (Poslech)'),
+        h('div', { class: 'presets' },
+          INTERVALS.map((interval) => h('button', {
+            type: 'button',
+            class: 'chip',
+            title: interval.name,
+            'aria-pressed': String(settings.intervals.includes(interval.semitones)),
+            onClick: () => {
+              const on = new Set(settings.intervals);
+              if (on.has(interval.semitones)) on.delete(interval.semitones);
+              else on.add(interval.semitones);
+              settings.intervals = ALL_INTERVALS.filter((s) => on.has(s));
+              build();
+            },
+          }, interval.short)),
+          h('button', { type: 'button', class: 'chip', onClick: () => { settings.intervals = [...ALL_INTERVALS]; build(); } }, 'Vše'),
+          h('button', { type: 'button', class: 'chip', onClick: () => { settings.intervals = []; build(); } }, 'Nic')),
+        h('p', { class: 'key-info' }, 'm = malá, v = velká, č = čistá, zv4 = tritón; 2 sekunda, 3 tercie, 4 kvarta, 5 kvinta, 6 sexta, 7 septima, 8 oktáva.')),
+
+      h('section', {},
         h('h3', {}, 'Možnosti'),
         checkbox('Před každým přehraným tónem zahrát referenční c¹ (Poslech, Hraní podle sluchu)', settings.earReference, (on) => {
           settings.earReference = on;
+          onChange();
         }),
         checkbox('Hraní: uznat notu v jakékoli oktávě', settings.ignoreOctave, (on) => {
           settings.ignoreOctave = on;
+          onChange();
         })),
     );
     commit();

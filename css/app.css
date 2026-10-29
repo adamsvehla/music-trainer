@@ -127,19 +127,52 @@ button:focus-visible, input:focus-visible {
 
 .icon-btn svg { width: 22px; height: 22px; }
 
-/* Four tabs and the title don't fit side by side until a wide window. */
-@media (max-width: 760px) {
+@media (max-width: 560px) {
   .brand { display: none; }
   .tabs { margin-left: 0; flex: 1; }
   .tabs button { flex: 1; padding: 8px 6px; }
 }
 
-/* On a phone "podle not" / "podle sluchu" goes under "Hraní", smaller, so the four tabs
-   share the row evenly instead of squeezing the long ones. */
-@media (max-width: 560px) {
-  .tabs { border-radius: 18px; }
-  .tabs button { padding: 6px 2px; border-radius: 14px; font-size: 0.9rem; line-height: 1.15; }
-  .tabs button span { display: block; font-size: 0.72rem; font-weight: 500; }
+/* The variants of the current group (Hraní podle not / podle sluchu, Poslech nota /
+   nahoru–dolů / intervaly) as tabs at the top of the staff card: the header tabs' look,
+   one size down. */
+.subtabs {
+  display: flex;
+  justify-content: center;
+  margin: 2px 0 4px;
+}
+
+.subtabs:empty { display: none; }
+
+.subtabs .group {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 3px;
+  padding: 3px;
+  background: var(--soft);
+  border-radius: 999px;
+}
+
+.subtabs button {
+  border: 0;
+  background: transparent;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 550;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.subtabs button[aria-selected='true'] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+
+@media (max-width: 400px) {
+  .subtabs .group { display: flex; width: 100%; }
+  .subtabs button { flex: 1; padding: 5px 4px; font-size: 0.82rem; }
 }
 
 /* ---- Stage ---- */
@@ -290,6 +323,31 @@ button:focus-visible, input:focus-visible {
   max-width: 88px;
   min-height: 56px;
   padding: 8px 4px;
+  font-size: 1.25rem;
+}
+
+/* Poslech · Intervaly: one button per enabled interval, short name over the full one. */
+.interval-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.interval-grid .btn {
+  display: grid;
+  gap: 1px;
+  min-height: 58px;
+  padding: 6px 4px;
+}
+
+.interval-grid .btn b { font-size: 1.15rem; }
+.interval-grid .btn small { font-size: 0.72rem; font-weight: 500; color: var(--muted); }
+.interval-grid .btn.correct small, .interval-grid .btn.wrong small { color: inherit; }
+
+.choices .btn {
+  flex: 1 1 0;
+  max-width: 220px;
+  min-height: 64px;
   font-size: 1.25rem;
 }
 

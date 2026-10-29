@@ -48,10 +48,23 @@ test('the last quick selection is remembered, an unknown one falls back to C dur
   assert.equal(reset.region, 'staff');
 });
 
-test('all four modes are remembered', () => {
-  for (const mode of ['read', 'play', 'playEar', 'ear']) {
+test('every mode is remembered', () => {
+  for (const mode of ['read', 'play', 'playEar', 'ear', 'direction', 'intervals']) {
     assert.equal(loadSettings(memory({ 'music-trainer:v1': JSON.stringify({ mode }) })).mode, mode);
   }
+});
+
+test('the last mode of each group is kept only if it belongs to that group', () => {
+  const s = loadSettings(memory({
+    'music-trainer:v1': JSON.stringify({ lastModes: { play: 'playEar', listen: 'read', read: 'nonsense' } }),
+  }));
+  assert.deepEqual(s.lastModes, { play: 'playEar' });
+});
+
+test('intervals: all by default, a stored choice is kept and cleaned', () => {
+  assert.equal(loadSettings(memory()).intervals.length, 12);
+  const s = loadSettings(memory({ 'music-trainer:v1': JSON.stringify({ intervals: [7, 3, 3, 40, 'x'] }) }));
+  assert.deepEqual(s.intervals, [3, 7]);
 });
 
 test('an empty pool is kept as the user chose it', () => {
